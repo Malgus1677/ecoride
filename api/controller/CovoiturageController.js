@@ -1,11 +1,11 @@
 const db = require('../config/db');
 const mongoose = require('mongoose');
-const Historique = require('../models/Historique'); // Ton modèle Mongoose
+const Historique = require('../models/historique'); // Ton modèle Mongoose
 
 const ADMIN_ID = 6;
 
 const getCovoiturageById = async (req, res) => {
-    
+
 }
 
 // ✅ 1. Participer à un covoiturage
