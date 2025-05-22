@@ -4,23 +4,27 @@ const cors = require('cors');
 const connectMongo = require('./config/mongoose');
 const mysql = require('./config/mysql'); // initialise la connexion
 const covoiturageRoutes = require('./routes/covoiturageRoutes');
+const authRoutes = require('./routes/authRoutes')
 
+const cookieParser = require('cookie-parser'); // <-- importer cookie-parser
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());               
+const corsOptions = {
+  origin: 'http://localhost:3001', // Adresse exacte de ton frontend
+  credentials: true,               // Autoriser l'envoi des cookies et headers d'authentification
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
+app.use(cookieParser()); // <-- ajouter ce middleware avant tes routes
 
-// Route test
-app.get('/', (req, res) => {
-  res.send('🚗 Bienvenue sur l\'API Ecoride');
-});
 
 // Routes API
-app.use('/api/covoiturages', covoiturageRoutes);
+app.use('/api/covoit', covoiturageRoutes);
+app.use('/api/auth', authRoutes)
 
 // Connexion MongoDB
 connectMongo();

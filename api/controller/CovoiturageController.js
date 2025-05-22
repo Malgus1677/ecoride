@@ -1,12 +1,102 @@
-const db = require('../config/db');
+const db = require('../config/mysql');
 const mongoose = require('mongoose');
-const Historique = require('../models/historique'); // Ton modèle Mongoose
 
 const ADMIN_ID = 6;
 
-const getCovoiturageById = async (req, res) => {
+const getCovoitById = (req, res) => {
+    const covoitId = req.params.id;
 
-}
+    const getCovoitQuery = `SELECT * FROM covoiturage WHERE covoiturage_id = ?`;
+    db.query(getCovoitQuery, [covoitId], (err, covoitResults) => {
+        if (err) {
+            console.error("Erreur covoiturage:", err);
+            return res.status(500).json({ message: "Erreur lors de la récupération du covoiturage" });
+        }
+
+        if (covoitResults.length === 0) {
+            return res.status(404).json({ message: "Covoiturage non trouvé" });
+        }
+
+        const covoit = covoitResults[0];
+        const preferencesArray = covoit.preferences ? covoit.preferences.split(',') : [];
+
+        // Calcule de la durée du trajet (optionnel, ici format simple basé sur les heures)
+        const heureDepart = covoit.heure_depart.split(":");
+        const heureArrivee = covoit.heure_arrivee.split(":");
+        const dureeHeures = parseInt(heureArrivee[0]) - parseInt(heureDepart[0]);
+        const dureeMinutes = parseInt(heureArrivee[1]) - parseInt(heureDepart[1]);
+        const dureeTrajet = `${dureeHeures}h ${dureeMinutes >= 0 ? dureeMinutes : dureeMinutes + 60}min`;
+
+        // Récupération de l'ID voiture
+        const getUtiliseQuery = `SELECT voiture_id FROM utilise WHERE covoiturage_id = ?`;
+        db.query(getUtiliseQuery, [covoitId], (err, utiliseResults) => {
+            if (err) {
+                console.error("Erreur utilise:", err);
+                return res.status(500).json({ message: "Erreur lors de la récupération de la voiture" });
+            }
+
+            const voitureId = utiliseResults.length ? utiliseResults[0].voiture_id : null;
+
+            if (!voitureId) {
+                return res.status(404).json({ message: "Véhicule non trouvé" });
+            }
+
+            // Détails du véhicule
+            const getVoitureQuery = `SELECT energie FROM voiture WHERE voiture_id = ?`;
+            db.query(getVoitureQuery, [voitureId], (err, voitureResults) => {
+                if (err) {
+                    console.error("Erreur voiture:", err);
+                    return res.status(500).json({ message: "Erreur lors de la récupération du véhicule" });
+                }
+
+                const vehicule = voitureResults.length ? voitureResults[0] : { energie: "Inconnue" };
+
+                // Récupérer le conducteur (via la table gere)
+                const getConducteurQuery = `
+          SELECT utilisateur.utilisateur_id, utilisateur.pseudo, utilisateur.photo
+          FROM gere
+          JOIN utilisateur ON gere.utilisateur_id = utilisateur.utilisateur_id
+          WHERE gere.voiture_id = ?
+        `;
+
+                db.query(getConducteurQuery, [voitureId], (err, conducteurResults) => {
+                    if (err) {
+                        console.error("Erreur conducteur:", err);
+                        return res.status(500).json({ message: "Erreur lors de la récupération du conducteur" });
+                    }
+
+                    const proprietaireDetails = conducteurResults.length
+                        ? conducteurResults[0]
+                        : { pseudo: "Inconnu", photo: null, utilisateur_id: null };
+
+                    // Assemblage final
+                    const covoiturageComplet = {
+                        covoit: {
+                            covoiturage_id: covoit.covoiturage_id,
+                            date_depart: covoit.date_depart,
+                            heure_depart: covoit.heure_depart,
+                            lieu_depart: covoit.lieu_depart,
+                            date_arrivee: covoit.date_arrivee,
+                            heure_arrivee: covoit.heure_arrivee,
+                            lieu_arrivee: covoit.lieu_arrivee,
+                            statut: covoit.statut,
+                            prix_personne: covoit.prix_personne,
+                            nb_place: covoit.nb_place,
+                            nb_bagage: covoit.nb_bagage,
+                            preferences: preferencesArray,
+                        },
+                        dureeTrajet,
+                        vehicule,
+                        proprietaireDetails,
+                    };
+
+                    return res.status(200).json(covoiturageComplet);
+                });
+            });
+        });
+    });
+};
+
 
 // ✅ 1. Participer à un covoiturage
 const participateCovoit = async (req, res) => {
@@ -167,5 +257,6 @@ module.exports = {
     participateCovoit,
     deleteCovoit,
     annulCovoit,
-    getCovoitByUser
+    getCovoitByUser,
+    getCovoitById
 };

@@ -127,7 +127,7 @@ export default function UserProfile() {
       getHistoriqueByUser(user.id)
     }
   }, [user])
-  console.log('historiques', historiques)
+  console.log(user)
 
   useEffect(() => {
     if (user) {

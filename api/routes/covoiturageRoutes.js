@@ -1,12 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const covoiturageController = require('../controllers/covoiturageController');
+const covoiturageController = require('../controller/CovoiturageController');
 
 // Routes REST
-router.get('/', covoiturageController.getAll);
-router.get('/:id', covoiturageController.getById);
-router.post('/', covoiturageController.create);
-router.put('/:id', covoiturageController.update);
-router.delete('/:id', covoiturageController.remove);
+
+router.get('/:id', covoiturageController.getCovoitById);
+router.post('/user/:id', covoiturageController.getCovoitByUser);
+
 
 module.exports = router;
